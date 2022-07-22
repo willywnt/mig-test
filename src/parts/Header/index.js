@@ -1,14 +1,26 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { IoNotifications } from "react-icons/io5";
 import { FaRegUser, FaSearch } from "react-icons/fa";
-import { FiLogOut } from "react-icons/fi";
+import { FiLogOut, FiLogIn } from "react-icons/fi";
 import { HiMenu, HiSun } from "react-icons/hi";
 import { BsFillMoonFill } from "react-icons/bs";
 import useToggle from '../../hooks/useToggle';
+import useAuth from '../../hooks/useAuth';
 
 const Header = ({ theme, toggleTheme, handleOpen }) => {
   const [openSubMenu, toggleSubMenu] = useToggle(false);
   const [openNotification, toggleNotification] = useToggle(false);
+  const { auth, setAuth } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const handleLogin = () => {
+    navigate('/login', { replace: true, state: { from: location } });
+  }
+
+  const handleLogout = () => {
+    setAuth({});
+  }
 
   return (
     <div className="flex flex-col flex-1 w-full">
@@ -115,13 +127,18 @@ const Header = ({ theme, toggleTheme, handleOpen }) => {
                   </Link>
                 </li>
                 <li className="flex">
-                  <Link
-                    className="inline-flex items-center w-full px-2 py-1 text-sm font-semibold transition-colors duration-150 rounded-md hover:bg-gray-100 hover:text-gray-800 dark:hover:bg-gray-800 dark:hover:text-gray-200"
-                    to="/logout"
+                  <div className="inline-flex items-center w-full px-2 py-1 text-sm font-semibold transition-colors duration-150 rounded-md hover:bg-gray-100 hover:text-gray-800 dark:hover:bg-gray-800 dark:hover:text-gray-200 cursor-pointer"
+                    onClick={auth?.email ? handleLogout : handleLogin}
                   >
-                    <FiLogOut className="w-4 h-4 mr-3" />
-                    <span>Log out</span>
-                  </Link>
+                    {auth?.email ? <>
+                      <FiLogOut className="w-4 h-4 mr-3" />
+                      <span>Log Out</span>
+                    </> : <>
+                      <FiLogIn className="w-4 h-4 mr-3" />
+                      <span>Log in</span>
+                    </>}
+
+                  </div>
                 </li>
               </ul>
             </li >

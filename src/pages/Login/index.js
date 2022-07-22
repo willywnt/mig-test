@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import Header from "../../components/AuthHeader";
 import { loginFields } from "../../data/constants";
 import { Input, CheckBox } from '../../components/Form';
 import Button from '../../components/Button';
 import { Link } from "react-router-dom";
 import axios from '../../api/axios';
+import useAuth from '../../hooks/useAuth';
 
 const fields = loginFields;
 let fieldsState = {};
@@ -15,59 +17,73 @@ const LOGIN_URL = '/auth/login';
 
 const Login = () => {
   const [loginState, setLoginState] = useState(fieldsState);
+  const { setAuth } = useAuth();
+
+  const navigate = useNavigate();
+  const location = useLocation();
+  const from = location.state?.from?.pathname || "/";
 
   const [validEmail, setValidEmail] = useState(false);
   const [inputFocus, setInputFocus] = useState(false);
   const [errMsg, setErrMsg] = useState('');
 
-  const [success, setSuccess] = useState(false);
+  const [canSubmit, setCanSubmit] = useState(false);
 
   useEffect(() => {
     const isValid = EMAIL_REGEX.test(loginState['email-address']);
     setValidEmail(isValid);
     if (isValid && loginState['password'] !== '') {
-      setSuccess(true);
+      setCanSubmit(true);
     } else {
-      setSuccess(false);
+      setCanSubmit(false);
     }
   }, [loginState]);
 
-
+  const clearMsg = () => {
+    setTimeout(() => {
+      setErrMsg('');
+    }, 3000);
+  }
   const handleChange = (e) => {
     setLoginState({ ...loginState, [e.target.id]: e.target.value })
   }
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (success) {
-      const userObject = {
-        email: loginState['email-address'],
-        password: loginState['password']
-      };
-      try {
-        const response = await axios.post(LOGIN_URL,
-          JSON.stringify(userObject),
-          {
-            headers: { 'Content-Type': 'application/json' },
-            withCredentials: true
-          }
-        );
-        console.log(response.data);
-        console.log(response.access_token);
-      } catch (err) {
-        console.log(err);
+    const email = loginState['email-address'];
+    const password = loginState['password'];
+    if (canSubmit) {
+      axios.post(LOGIN_URL,
+        {
+          email,
+          password
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          withCredentials: true
+        }
+      ).then((res) => {
+        setAuth({ email, password, access_token: res.data.access_token });
+        navigate(from, { replace: true });
+      }).catch((err) => {
         if (!err?.response) {
           setErrMsg('Server not response');
-        } else {
+        } else if (err.response?.status === 400) {
           setErrMsg('Something went wrong!');
+        } else if (err.response?.status === 401) {
+          setErrMsg('Unauthorized');
+        } else {
+          setErrMsg('Login failed');
         }
-      }
+        clearMsg();
+      });
     } else {
       setErrMsg('Please fill the input!');
-      setTimeout(() => {
-        setErrMsg('');
-      }, 3000);
+      clearMsg();
     }
   }
+
 
   return (
     <div className="px-4 py-3 bg-white rounded-lg shadow-md dark:bg-gray-800">
@@ -109,7 +125,7 @@ const Login = () => {
             </Link>
           </div>
         </div>
-        <Button labelText="Login" customClass="w-full mt-12 mb-2" disabled={!success} onClick={handleSubmit} />
+        <Button labelText="Login" customClass="w-full mt-12 mb-2" disabled={!canSubmit} onClick={handleSubmit} />
       </form>
     </div>
   )

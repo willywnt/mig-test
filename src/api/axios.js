@@ -1,5 +1,6 @@
 import axios from "axios";
+const port = process.env.PORT || 3000;
 
 export default axios.create({
-  baseURL: 'https://mitramas-test.herokuapp.com'
+  baseURL: `http://localhost:${port}/`
 });
